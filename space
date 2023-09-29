@@ -1,0 +1,151 @@
+import pygame
+import sys
+import random
+import base64
+from io import BytesIO
+from PIL import Image
+
+# Initialisation de Pygame
+pygame.init()
+
+# Constantes du jeu
+LARGEUR, HAUTEUR = 800, 600
+ECRAN = pygame.display.set_mode((LARGEUR, HAUTEUR))
+pygame.display.set_caption("Space Invaders")
+
+# Couleurs
+BLANC = (255, 255, 255)
+NOIR = (0, 0, 0)
+
+# Joueur
+JOUEUR_LARGEUR, JOUEUR_HAUTEUR = 50, 50
+joueur_base64 = """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
+"""
+joueur_image = Image.open(BytesIO(base64.b64decode(joueur_base64)))
+joueur_image = joueur_image.resize((JOUEUR_LARGEUR, JOUEUR_HAUTEUR))
+joueur_data = pygame.image.tostring(pygame.image.fromstring(joueur_image.tobytes(), joueur_image.size, joueur_image.mode), "RGBA")
+
+joueur = pygame.image.fromstring(joueur_data, (JOUEUR_LARGEUR, JOUEUR_HAUTEUR), "RGBA")
+joueur_x = (LARGEUR - JOUEUR_LARGEUR) // 2
+joueur_y = HAUTEUR - JOUEUR_HAUTEUR - 10
+joueur_vitesse = 5
+
+# Ennemis
+ENNEMI_LARGEUR, ENNEMI_HAUTEUR = 40, 40
+ennemi_base64 = """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
+"""
+ennemi_image = Image.open(BytesIO(base64.b64decode(ennemi_base64)))
+ennemi_image = ennemi_image.resize((ENNEMI_LARGEUR, ENNEMI_HAUTEUR))
+ennemi_data = pygame.image.tostring(pygame.image.fromstring(ennemi_image.tobytes(), ennemi_image.size, ennemi_image.mode), "RGBA")
+
+ennemi = pygame.image.fromstring(ennemi_data, (ENNEMI_LARGEUR, ENNEMI_HAUTEUR), "RGBA")
+ennemi_x = random.randint(0, LARGEUR - ENNEMI_LARGEUR)
+ennemi_y = random.randint(50, 150)
+ennemi_vitesse = 2
+
+# Projectiles
+projectiles = []
+
+# Définition de l'événement de tir
+TIR = pygame.USEREVENT + 1
+pygame.time.set_timer(TIR, 500)  # Déclenche l'événement de tir toutes les 500 millisecondes
+
+# Vies du joueur
+vies = 3  # Vous pouvez ajuster le nombre de vies initial du joueur ici
+
+# Boucle de jeu
+running = True
+clock = pygame.time.Clock()
+
+# Variable pour gérer la fin du jeu
+game_over = False
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        # Gestion de l'événement de tir
+        if event.type == TIR:
+            # Créez un projectile
+            projectile = pygame.Rect(joueur_x + JOUEUR_LARGEUR // 2 - 5, joueur_y, 10, 20)
+            projectiles.append(projectile)
+
+    touches = pygame.key.get_pressed()
+    if touches[pygame.K_LEFT] and joueur_x > 0:
+        joueur_x -= joueur_vitesse
+    if touches[pygame.K_RIGHT] and joueur_x < LARGEUR - JOUEUR_LARGEUR:
+        joueur_x += joueur_vitesse
+
+    # Mouvement de l'ennemi
+    ennemi_y += ennemi_vitesse
+    if ennemi_y > HAUTEUR:
+        ennemi_x = random.randint(0, LARGEUR - ENNEMI_LARGEUR)
+        ennemi_y = random.randint(50, 150)
+        vies -= 1  # Le joueur perd une vie lorsque l'ennemi atteint la limite inférieure
+
+    # Mouvement des projectiles
+    for projectile in projectiles:
+        projectile.y -= 5  # Déplacez le projectile vers le haut
+        if projectile.y < 0:
+            projectiles.remove(projectile)
+
+    # Détection de collision entre joueur et ennemi
+    joueur_rect = pygame.Rect(joueur_x, joueur_y, JOUEUR_LARGEUR, JOUEUR_HAUTEUR)
+    ennemi_rect = pygame.Rect(ennemi_x, ennemi_y, ENNEMI_LARGEUR, ENNEMI_HAUTEUR)
+    if joueur_rect.colliderect(ennemi_rect):
+        vies -= 1  # Le joueur perd une vie en cas de collision
+        ennemi_x = random.randint(0, LARGEUR - ENNEMI_LARGEUR)
+        ennemi_y = random.randint(50, 150)
+
+    # Détection de collision entre projectiles et ennemis
+    for projectile in projectiles:
+        projectile_rect = pygame.Rect(projectile.x, projectile.y, 10, 20)
+        ennemi_rect = pygame.Rect(ennemi_x, ennemi_y, ENNEMI_LARGEUR, ENNEMI_HAUTEUR)
+        if projectile_rect.colliderect(ennemi_rect):
+            projectiles.remove(projectile)
+            ennemi_x = random.randint(0, LARGEUR - ENNEMI_LARGEUR)
+            ennemi_y = random.randint(50, 150)
+
+    # Effacement de l'écran
+    ECRAN.fill(BLANC)
+
+    # Affichage des éléments
+    ECRAN.blit(joueur, (joueur_x, joueur_y))
+    ECRAN.blit(ennemi, (ennemi_x, ennemi_y))
+
+    # Affichage des projectiles
+    for projectile in projectiles:
+        pygame.draw.rect(ECRAN, NOIR, projectile)
+
+    # Affichage du nombre de vies restantes
+    font = pygame.font.Font(None, 36)
+    texte_vies = font.render(f"Vies: {vies}", True, NOIR)
+    ECRAN.blit(texte_vies, (10, 10))
+
+    pygame.display.flip()
+
+    # Vérification de la défaite
+    if vies <= 0:
+        game_over = True
+
+    clock.tick(60)
+
+    # Si le jeu est terminé, attendez que le joueur appuie sur une touche pour redémarrer
+    while game_over:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False  # Quitte le jeu si le joueur ferme la fenêtre
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    # Réinitialisez les valeurs du jeu et relancez le jeu
+                    vies = 3
+                    joueur_x = (LARGEUR - JOUEUR_LARGEUR) // 2
+                    ennemi_x = random.randint(0, LARGEUR - ENNEMI_LARGEUR)
+                    ennemi_y = random.randint(50, 150)
+                    projectiles = []
+                    game_over = False
+
+# Fermeture de Pygame et sortie
+pygame.quit()
+sys.exit()
